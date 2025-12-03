@@ -1,24 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
+  import  MoodTracker  from '$lib/MoodTracker/MoodTracker.svelte';
+  import type { MoodEntry } from '$lib/MoodTracker/types';
 
-  onMount(() => {
-    goto("/home");
-  });
+  let entries = $state<MoodEntry[]>([]);
+
+  function handleMoodSave(entry: MoodEntry) {
+    console.log('New mood saved:', entry);
+  }
 </script>
 
-<div class="loading">
-  <p>Loading...</p>
-</div>
-
-<style>
-  .loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(180deg, #6366f1 0%, #818cf8 100%);
-    color: white;
-    font-size: 1.5rem;
-  }
-</style>
+<MoodTracker bind:entries onMoodSave={handleMoodSave} />
