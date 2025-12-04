@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PopupEnd from "../popupEnd.svelte";
-	import MoodTracker from "./MoodTracker.svelte";
+	import  MoodTracker  from '$lib/MoodTracker/MoodTracker.svelte';
+  	import type { MoodEntry } from '$lib/MoodTracker/types';
 	import TasksModal from "./TasksModal.svelte";
 	import ProgressJourney from "./ProgressJourney.svelte";
 	import { goto } from "$app/navigation";
@@ -55,6 +56,14 @@
 		);
 		tasksStore.set(updatedTasks);
 	}
+
+
+	let entries = $state<MoodEntry[]>([]);
+
+	function handleMoodSave(entry: MoodEntry) {
+		console.log('New mood saved:', entry);
+	} 
+
 </script>
 
 <div class="page-container">
@@ -110,7 +119,9 @@
 
 		<MoodTestControls />
 		<!-- Simplified Daily Mood Tracker Component -->
-		<MoodTracker onEditClick={OnClickNavigateMoodScreen} />
+
+
+		<MoodTracker bind:entries onMoodSave={handleMoodSave} />
 
 		<!-- Mindfulness Exercises Section -->
 		<section class="mindfulness-section">

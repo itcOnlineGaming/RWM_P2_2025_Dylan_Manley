@@ -1,4 +1,5 @@
-    import  MoodTracker  from '$lib/MoodTracker/MoodTracker.svelte';
+<script lang="ts">
+  import  MoodTracker  from '$lib/MoodTracker/MoodTracker.svelte';
   import type { MoodEntry } from '$lib/MoodTracker/types';
 
   let entries = $state<MoodEntry[]>([]);
