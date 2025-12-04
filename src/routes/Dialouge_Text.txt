@@ -1,0 +1,26 @@
+[Entry Screen]
+1. "Hello and welcome our called; Mood Tracker! [temp name]" 
+
+2. "Press the 'Continue' button to go to the Home Screen"
+(- After pressing Continue the Home Screen is loaded - )
+
+[Home Screen]
+3. "Here you can view your 'Task List' and 'Mood Graph'
+
+4. "Try clicking on the 'Edit' button on your 'Mood Graph' to input your current mood!"
+
+[Mood Screen]
+5. "Please select one of the circle to show how you are feeling"
+
+( - After selecting a cirlce - )
+6. "Thank you!"
+
+(Timer that counts to several seconds)
+
+[Home Screen]
+7. "You can see your 'Mood' you have input appear on the 'Mood Graph' below"
+
+8. "Select the 'Exit' button to go to the Exit Screen"
+(Clicks on the Exit Button)
+
+9. "Here are the results from this current session"

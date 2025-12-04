@@ -1,12 +1,27 @@
 <script lang="ts">
-  import  MoodTracker  from '$lib/MoodTracker/MoodTracker.svelte';
-  import type { MoodEntry } from '$lib/MoodTracker/types';
+	//import { goto } from "$app/navigation";
+    //import { base } from '$app/paths';
+    import PopupStart from "./popupStart.svelte";    
+    import './styles.css';
+    //import { getAgreementStatus } from './consentAgreement';
 
-  let entries = $state<MoodEntry[]>([]);
+    // function OnClickNavigate()
+    // {
+    //     console.log("Confirm Button Clicked");
+    //     if (getAgreementStatus())
+    //         goto(`${base}/Homescreen`, {noScroll:false});
+    //     else
+    //         alert("Agreement has not been accepted. Please accept the agreement to access the application");
+    // }
 
-  function handleMoodSave(entry: MoodEntry) {
-    console.log('New mood saved:', entry);
-  }
+    // function OnClickNavigateExitScreen()
+    // {
+    //     console.log("Exit Screen Button Clicked");
+    //     goto(`${base}/Exitscreen`, {noScroll:false});
+    // }
+
 </script>
 
-<MoodTracker bind:entries onMoodSave={handleMoodSave} />
+<h1> Hello, please accept the Agreement to start Testing</h1>
+
+<PopupStart></PopupStart>

@@ -1,0 +1,80 @@
+:root {
+    /* Colors - Updated to match Figma */
+    --color-primary: #6366F1; /* Indigo/Purple from design */
+    --color-primary-light: #818CF8;
+    --color-secondary: #DBEAFE;
+    --color-accent: #E9D5FF;
+    --color-success: #4CAF50;
+    --color-danger: #FCA5A5;
+    --color-text: #1F2937;
+    --color-text-muted: #6B7280;
+    --color-background: #6366F1; /* Purple gradient background */
+    --color-background-light: #818CF8;
+    --color-white: #FFFFFF;
+    --color-card-bg: #F9FAFB;
+    --color-border: #E5E7EB;
+    --color-edit-btn: #7DD3FC; /* Light blue for edit button */
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    
+    /* Typography */
+    --font-family: system-ui, -apple-system, sans-serif;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Border radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 15px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: linear-gradient(180deg, var(--color-background) 0%, var(--color-background-light) 100%);
+    min-height: 100vh;
+}
+
+/* Global Button Styles */
+button {
+    font-family: var(--font-family);
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
