@@ -2,12 +2,12 @@
   import type { MoodEntry } from './types';
   import { onMount } from 'svelte';
 
-onMount(() => {
-  const saved = localStorage.getItem('moodEntries');
-  if (saved) {
-    entries = JSON.parse(saved);
-  }
-});
+  onMount(() => {
+    const saved = localStorage.getItem('moodEntries');
+    if (saved) {
+      entries = JSON.parse(saved);
+    }
+  });
   
   // Props with bindable entries
   let {
@@ -19,17 +19,24 @@ onMount(() => {
   } = $props();
 
   // State
-  let view = $state<'graph' | 'select' | 'result'>('graph');
+  let view = $state<'graph' | 'select' | 'journal' | 'result'>('graph');
   let selectedMood = $state<number | null>(null);
   let sliderValue = $state(50);
+  let note = $state('');
+  let tags = $state<string[]>([]);
+  let currentTag = $state('');
+  let hoveredEntry = $state<MoodEntry | null>(null);
+  let tooltipPosition = $state({ x: 0, y: 0 });
 
   const moodData = [
     { emoji: "😩", label: "I'm feeling overwhelmed", title: "Oh No!", message: "Remember to take care of yourself today.", value: 1 },
     { emoji: "😔", label: "Might need a break", title: "You might need a break.", message: "Let's ease things a bit.", value: 2 },
     { emoji: "😐", label: "I'm indifferent", title: "Good to Know!", message: "Keep maintaining that balance.", value: 3 },
     { emoji: "😊", label: "I'm feeling good", title: "Wonderful!", message: "Keep up the positive energy!", value: 4 },
-    { emoji: "😀", label: "I'm very confident", title: "That's great!", message: "You're doing amazing!", value: 5 }
+    { emoji: "😄", label: "I'm very confident", title: "That's great!", message: "You're doing amazing!", value: 5 }
   ];
+
+  const suggestedTags = ['work', 'family', 'exercise', 'social', 'health', 'sleep', 'stress', 'relaxation'];
 
   // Graph functions
   function getTodaysMoods(): MoodEntry[] {
@@ -52,6 +59,16 @@ onMount(() => {
     return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
   }
 
+  function handleMoodHover(entry: MoodEntry, event: MouseEvent) {
+    hoveredEntry = entry;
+    const rect = (event.target as SVGElement).getBoundingClientRect();
+    tooltipPosition = { x: rect.left + rect.width / 2, y: rect.top };
+  }
+
+  function handleMoodLeave() {
+    hoveredEntry = null;
+  }
+
   // Selection functions
   function handleMoodClick(value: number) {
     selectedMood = value;
@@ -66,21 +83,61 @@ onMount(() => {
     sliderValue = value;
   }
 
-  function continueToResult() {
+  function continueToJournal() {
     if (selectedMood !== null) {
-      view = 'result';
+      view = 'journal';
     }
+  }
+
+  // Journal functions
+  function addTag(tag: string) {
+    const trimmedTag = tag.trim().toLowerCase();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      tags = [...tags, trimmedTag];
+      currentTag = '';
+    }
+  }
+
+  function removeTag(tag: string) {
+    tags = tags.filter(t => t !== tag);
+  }
+
+  function handleTagInput(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTag(currentTag);
+    }
+  }
+
+  function continueToResult() {
+    view = 'result';
+  }
+
+  function skipJournal() {
+    note = '';
+    tags = [];
+    view = 'result';
   }
 
   function saveMood() {
     if (selectedMood !== null) {
       const newEntry: MoodEntry = {
         mood: selectedMood,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        note: note.trim() || undefined,
+        tags: tags.length > 0 ? tags : undefined
       };
       entries = [...entries, newEntry];
+      
+      // Save to localStorage
+      localStorage.setItem('moodEntries', JSON.stringify(entries));
+      
       onMoodSave(newEntry);
+      
+      // Reset state
       selectedMood = null;
+      note = '';
+      tags = [];
       view = 'graph';
     }
   }
@@ -128,7 +185,10 @@ onMount(() => {
                 {@const x = (getHourFromTimestamp(entry.timestamp) / 24) * 600}
                 {@const y = 400 - ((entry.mood - 1) / 4) * 350 - 25}
                 
-                <circle cx={x} cy={y} r="8" fill="#A78BFA" stroke="white" stroke-width="3" />
+                <circle cx={x} cy={y} r="8" fill="#A78BFA" stroke="white" stroke-width="3" 
+                        style="cursor: pointer;"
+                        onmouseenter={(e) => handleMoodHover(entry, e)}
+                        onmouseleave={handleMoodLeave} />
                 <text x={x} y={y - 15} text-anchor="middle" font-size="12" 
                       font-weight="600" fill="#8b5cf6">
                   {formatTime(entry.timestamp)}
@@ -156,6 +216,30 @@ onMount(() => {
     <button class="add-mood-btn" onclick={() => view = 'select'}>
       Add Mood Entry
     </button>
+
+    {#if hoveredEntry}
+      <div class="mood-tooltip" style="left: {tooltipPosition.x}px; top: {tooltipPosition.y}px;">
+        <div class="tooltip-content">
+          <div class="tooltip-mood">
+            <span class="tooltip-emoji">{moodData[hoveredEntry.mood - 1].emoji}</span>
+            <span class="tooltip-label">{moodData[hoveredEntry.mood - 1].label}</span>
+          </div>
+          <div class="tooltip-time">{formatTime(hoveredEntry.timestamp)}</div>
+          {#if hoveredEntry.note}
+            <div class="tooltip-note">
+              <strong>Note:</strong> {hoveredEntry.note}
+            </div>
+          {/if}
+          {#if hoveredEntry.tags && hoveredEntry.tags.length > 0}
+            <div class="tooltip-tags">
+              {#each hoveredEntry.tags as tag}
+                <span class="tooltip-tag">{tag}</span>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
 
   {:else if view === 'select'}
     <!-- SELECTION VIEW -->
@@ -186,9 +270,95 @@ onMount(() => {
       </div>
 
       <button class="continue-btn" disabled={selectedMood === null}
-              onclick={continueToResult}>
+              onclick={continueToJournal}>
         Continue
       </button>
+    </div>
+
+  {:else if view === 'journal'}
+    <!-- JOURNAL VIEW -->
+    <div class="journal-container">
+      <h1>📝 Add a note (optional)</h1>
+      
+      <div class="journal-card">
+        <div class="selected-mood-display">
+          <span class="mood-emoji-med">{moodInfo?.emoji}</span>
+          <span class="mood-label">{moodInfo?.label}</span>
+        </div>
+
+        <div class="note-section">
+          <textarea
+            bind:value={note}
+            placeholder="What's on your mind? What contributed to this mood?"
+            maxlength="500"
+            rows="6"
+          ></textarea>
+          <div class="char-count">{note.length}/500</div>
+        </div>
+
+        <div class="tags-section">
+          <h3>🏷️ Add tags</h3>
+          
+          <div class="tags-input-container">
+            <input
+              type="text"
+              bind:value={currentTag}
+              onkeydown={handleTagInput}
+              placeholder="Type a tag and press Enter"
+              class="tag-input"
+            />
+            <button 
+              type="button"
+              onclick={() => addTag(currentTag)}
+              class="add-tag-btn"
+              disabled={!currentTag.trim()}
+            >
+              Add
+            </button>
+          </div>
+
+          <div class="suggested-tags">
+            {#each suggestedTags as tag}
+              {#if !tags.includes(tag)}
+                <button
+                  type="button"
+                  class="suggested-tag"
+                  onclick={() => addTag(tag)}
+                >
+                  {tag}
+                </button>
+              {/if}
+            {/each}
+          </div>
+
+          {#if tags.length > 0}
+            <div class="selected-tags">
+              {#each tags as tag}
+                <span class="tag">
+                  {tag}
+                  <button
+                    type="button"
+                    onclick={() => removeTag(tag)}
+                    class="remove-tag"
+                    aria-label="Remove tag"
+                  >
+                    ×
+                  </button>
+                </span>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
+        <div class="journal-buttons">
+          <button class="skip-btn" onclick={skipJournal}>
+            Skip
+          </button>
+          <button class="continue-btn" onclick={continueToResult}>
+            Continue
+          </button>
+        </div>
+      </div>
     </div>
 
   {:else if view === 'result'}
@@ -201,6 +371,24 @@ onMount(() => {
         
         <h1 class="title">{moodInfo.title}</h1>
         <p class="message">{moodInfo.message}</p>
+
+        {#if note || tags.length > 0}
+          <div class="summary-card">
+            {#if note}
+              <div class="summary-note">
+                <strong>Note:</strong> {note}
+              </div>
+            {/if}
+            {#if tags.length > 0}
+              <div class="summary-tags">
+                <strong>Tags:</strong>
+                {#each tags as tag}
+                  <span class="summary-tag">{tag}</span>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
         
         <button class="save-btn" onclick={saveMood}>
           Save & Continue
@@ -303,6 +491,88 @@ onMount(() => {
 
   .add-mood-btn:hover {
     background: #45a049;
+  }
+
+  .mood-tooltip {
+    position: fixed;
+    transform: translate(-50%, calc(-100% - 10px));
+    z-index: 1000;
+    pointer-events: none;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-100% - 5px));
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, calc(-100% - 10px));
+    }
+  }
+
+  .tooltip-content {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 2px solid #6366f1;
+    min-width: 200px;
+    max-width: 300px;
+  }
+
+  .tooltip-mood {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tooltip-emoji {
+    font-size: 1.5rem;
+  }
+
+  .tooltip-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+  }
+
+  .tooltip-time {
+    font-size: 0.875rem;
+    color: #6366f1;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .tooltip-note {
+    font-size: 0.875rem;
+    color: #4b5563;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+  }
+
+  .tooltip-note strong {
+    color: #6366f1;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .tooltip-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tooltip-tag {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: #eff6ff;
+    color: #6366f1;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 
   /* SELECTION STYLES */
@@ -457,10 +727,204 @@ onMount(() => {
     cursor: not-allowed;
   }
 
+  /* JOURNAL STYLES */
+  .journal-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .journal-card {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .selected-mood-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 12px;
+  }
+
+  .mood-emoji-med {
+    font-size: 3rem;
+  }
+
+  .mood-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .note-section {
+    margin-bottom: 2rem;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+  }
+
+  .char-count {
+    text-align: right;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+  }
+
+  .tags-section h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1rem;
+  }
+
+  .tags-input-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tag-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .tag-input:focus {
+    outline: none;
+    border-color: #6366f1;
+  }
+
+  .add-tag-btn {
+    padding: 0.75rem 1.5rem;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .add-tag-btn:hover:not(:disabled) {
+    background: #4f46e5;
+  }
+
+  .add-tag-btn:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+  }
+
+  .suggested-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .suggested-tag {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .suggested-tag:hover {
+    border-color: #6366f1;
+    background: #eff6ff;
+    color: #6366f1;
+  }
+
+  .selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #6366f1;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .remove-tag {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .remove-tag:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .journal-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .skip-btn {
+    flex: 1;
+    padding: 1rem;
+    background: #e5e7eb;
+    color: #374151;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .skip-btn:hover {
+    background: #d1d5db;
+  }
+
   /* RESULT STYLES */
   .result-container {
     text-align: center;
-    max-width: 500px;
+    max-width: 600px;
     margin: 0 auto;
   }
 
@@ -499,8 +963,50 @@ onMount(() => {
     color: white;
     font-size: clamp(1.25rem, 3vw, 1.75rem);
     font-weight: 600;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     line-height: 1.5;
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: left;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .summary-note {
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .summary-note strong {
+    color: #6366f1;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-tags {
+    color: #374151;
+  }
+
+  .summary-tags strong {
+    color: #6366f1;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #eff6ff;
+    color: #6366f1;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+    margin-top: 0.25rem;
   }
 
   .save-btn {
@@ -520,5 +1026,19 @@ onMount(() => {
     background: #45a049;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (max-width: 640px) {
+    .journal-card {
+      padding: 1.5rem;
+    }
+
+    .mood-emoji-med {
+      font-size: 2.5rem;
+    }
+
+    .mood-label {
+      font-size: 1rem;
+    }
   }
 </style>
